@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventaris Kantua</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Datalabels Plugin CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        /* Removed dark mode scrollbar styles */
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        /* Removed dark mode scrollbar styles */
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Removed dark mode scrollbar styles */
+
+        /* Modal overlay */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Hide specific columns on small screens for better responsiveness */
+        @media (max-width: 768px) {
+            .hide-on-mobile {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-100 text-gray-900 flex">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-lg p-6 flex flex-col justify-between rounded-r-2xl">
+        <div>
+            <div class="text-2xl font-bold text-indigo-600 mb-2">Inventaris Kantua</div>
+            <p class="text-sm text-gray-600 mb-8">"barang titipan jaga yang baik yaa"</p>
+
+            <nav>
+                <ul>
+                    <li class="mb-4">
+                        <a href="#" id="nav-dashboard" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-indigo-100 hover:text-indigo-700 transition-all duration-200">
+                            <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="mb-4">
+                        <a href="#" id="nav-team-tools" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-indigo-100 hover:text-indigo-700 transition-all duration-200">
+                            <i data-lucide="wrench" class="w-5 h-5 mr-3"></i> Kelola Tools Kerja Tim
+                        </a>
+                    </li>
+                    <li class="mb-4">
+                        <a href="#" id="nav-gadget-tools" class="flex items-center p-3 rounded-lg text-gray-700 hover:bg-indigo-100 hover:text-indigo-700 transition-all duration-200">
+                            <i data-lucide="smartphone" class="w-5 h-5 mr-3"></i> Kelola Tools Gadget
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Date/Time - Theme Toggle removed -->
+        <div class="mt-auto">
+            <div class="text-sm text-gray-600 p-3 rounded-lg bg-gray-50" id="current-datetime">
+                <!-- Date and Time will be inserted here by JS -->
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-8 overflow-y-auto">
+        <!-- Notification/Message Box -->
+        <div id="message-box" class="hidden fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50 transition-transform transform translate-x-full" role="alert">
+            <div class="flex items-center">
+                <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
+                <span id="message-text"></span>
+                <button onclick="hideMessage()" class="ml-auto text-white hover:text-gray-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading-spinner" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500"></div>
+            <p class="ml-4 text-white text-lg">Memuat...</p>
+        </div>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard-section" class="page-section">
+            <h1 class="text-4xl font-extrabold text-gray-800 mb-8">Dashboard</h1>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Total Tools Kerja Tim</p>
+                        <p id="total-team-tools" class="text-3xl font-bold text-indigo-600 mt-1">0</p>
+                    </div>
+                    <i data-lucide="wrench" class="w-10 h-10 text-indigo-400 opacity-30"></i>
+                </div>
+                <!-- Swapped position of Total Tools Gadget and Tools Tim Kondisi Baik -->
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Tools Tim Kondisi Baik</p>
+                        <p id="team-good-condition" class="text-3xl font-bold text-blue-600 mt-1">0</p>
+                    </div>
+                    <i data-lucide="check-circle" class="w-10 h-10 text-blue-400 opacity-30"></i>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Total Tools Gadget</p>
+                        <p id="total-gadget-tools" class="text-3xl font-bold text-green-600 mt-1">0</p>
+                    </div>
+                    <i data-lucide="smartphone" class="w-10 h-10 text-green-400 opacity-30"></i>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Gadget Kondisi Baik</p>
+                        <p id="gadget-good-condition" class="text-3xl font-bold text-teal-600 mt-1">0</p>
+                    </div>
+                    <i data-lucide="check-circle" class="w-10 h-10 text-teal-400 opacity-30"></i>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Kondisi Tools Kerja Tim</h2>
+                    <canvas id="teamToolsChart" style="height: 350px;"></canvas>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Kondisi Tools Gadget</h2>
+                    <canvas id="gadgetToolsChart" style="height: 350px;"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Kelola Tools Kerja Tim Section -->
+        <section id="team-tools-section" class="page-section hidden">
+            <h1 class="text-4xl font-extrabold text-gray-800 mb-8">Kelola Tools Kerja Tim</h1>
+
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div class="relative w-full md:w-1/3">
+                    <input type="text" id="search-team-tools" placeholder="Cari Tools Kerja Tim..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white text-gray-900">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <button id="add-team-tool-btn" class="flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">
+                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Tambah Data
+                    </button>
+                    <button id="upload-team-tools-btn" class="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition-colors duration-200">
+                        <i data-lucide="upload" class="w-5 h-5 mr-2"></i> Upload Bulk CSV
+                    </button>
+                    <button id="download-team-tools-btn" class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-200">
+                        <i data-lucide="download" class="w-5 h-5 mr-2"></i> Download Summary
+                    </button>
+                    <button id="download-team-template-btn" class="flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 transition-colors duration-200">
+                        <i data-lucide="file-text" class="w-5 h-5 mr-2"></i> Download Template CSV
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Part Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S/N</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Brand</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Standard</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Size</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Purchase Year</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Manufacture Year</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kondisi</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Update</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Remark</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="team-tools-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Data will be loaded here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Kelola Tools Gadget Section -->
+        <section id="gadget-tools-section" class="page-section hidden">
+            <h1 class="text-4xl font-extrabold text-gray-800 mb-8">Kelola Tools Gadget</h1>
+
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div class="relative w-full md:w-1/3">
+                    <input type="text" id="search-gadget-tools" placeholder="Cari Tools Gadget..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white text-gray-900">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <button id="add-gadget-tool-btn" class="flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">
+                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Tambah Data
+                    </button>
+                    <button id="upload-gadget-tools-btn" class="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition-colors duration-200">
+                        <i data-lucide="upload" class="w-5 h-5 mr-2"></i> Upload Bulk CSV
+                    </button>
+                    <button id="download-gadget-tools-btn" class="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-200">
+                        <i data-lucide="download" class="w-5 h-5 mr-2"></i> Download Summary
+                    </button>
+                    <button id="download-gadget-template-btn" class="flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 transition-colors duration-200">
+                        <i data-lucide="file-text" class="w-5 h-5 mr-2"></i> Download Template CSV
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PIC</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Job Role</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Area</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Brand | Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">RAM / ROM</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">S/N / IMEI</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kondisi</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Update</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-on-mobile">Remark</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gadget-tools-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Data will be loaded here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Modals -->
+        <!-- Add/Edit Team Tool Modal -->
+        <div id="team-tool-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden modal-overlay">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg mx-4 transform transition-all duration-300 scale-95 opacity-0" id="team-tool-modal-content">
+                <h2 id="team-tool-modal-title" class="text-2xl font-bold text-gray-800 mb-6">Tambah Tools Kerja Tim</h2>
+                <form id="team-tool-form">
+                    <input type="hidden" id="team-tool-id">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label for="team-tool-team_id" class="block text-sm font-medium text-gray-700">Team ID</label>
+                            <input type="text" id="team-tool-team_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" required>
+                        </div>
+                        <div>
+                            <label for="team-tool-user" class="block text-sm font-medium text-gray-700">User</label>
+                            <input type="text" id="team-tool-user" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" required>
+                        </div>
+                        <div>
+                            <label for="team-tool-part_name" class="block text-sm font-medium text-gray-700">Part Name</label>
+                            <input type="text" id="team-tool-part_name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" required>
+                        </div>
+                        <div>
+                            <label for="team-tool-serial_number" class="block text-sm font-medium text-gray-700">S/N</label>
+                            <input type="text" id="team-tool-serial_number" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" required>
+                        </div>
+                        <div>
+                            <label for="team-tool-brand" class="block text-sm font-medium text-gray-700">Brand</label>
+                            <input type="text" id="team-tool-brand" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label for="team-tool-standard" class="block text-sm font-medium text-gray-700">Standard</label>
+                            <input type="text" id="team-tool-standard" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label for="team-tool-size" class="block text-sm font-medium text-gray-700">Size</label>
+                            <input type="text" id="team-tool-size" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label for="team-tool-type" class="block text-sm font-medium text-gray-700">Type</label>
+                            <input type="text" id="team-tool-type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label for="team-tool-purchase_date" class="block text-sm font-medium text-gray-700">Purchase Year</label>
+                            <input type="number" id="team-tool-purchase_date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" min="1900" max="2100">
+                        </div>
+                        <div>
+                            <label for="team-tool-manufacturing_date" class="block text-sm font-medium text-gray-700">Manufacture Year</label>
+                            <input type="number" id="team-tool-manufacturing_date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" min="1900" max="2100">
+                        </div>
+                        <div>
+                            <label for="team-tool-kondisi" class="block text-sm font-medium text-gray-700">Kondisi</label>
+                            <select id="team-tool-kondisi" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" required>
+                                <option value="Baik">Baik</option>
+                                <option value="Rusak">Rusak</option>
+                                <option value="Perlu Perbaikan">Perlu Perbaikan</option>
+                            </select>
+                        </div>
+                        <!-- Bidang Update secara otomatis dikelola oleh database, tidak perlu input -->
+                    </div>
+                    <div class="mb-6">
+                        <label for="team-tool-remark" class="block text-sm font-medium text-gray-700">Remark</label>
+                        <textarea id="team-tool-remark" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal('team-tool-modal')" class="px-5 py-2 bg-gray-300 text-gray-800 rounded-lg shadow-md hover:bg-gray-400 transition-colors duration-200">Batal</button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add/Edit Gadget Tool Modal -->
+        <div id="gadget-tool-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden modal-overlay">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg mx-4 transform transition-all duration-300 scale-95 opacity-0" id="gadget-tool-modal-content">
+                <h2 id="gadget-tool-modal-title" class="text-2xl font-bold text-gray-800 mb-6">Tambah Tools Gadget</h2>
+                <form id="gadget-tool-form">
+                    <input type="hidden" id="gadget-tool-id">
+                    <div class="mb-4">
+                        <label for="gadget-tool-pic" class="block text-sm font-medium text-gray-700">PIC</label>
+                        <input type="text" id="gadget-tool-pic" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="gadget-tool-job_role" class="block text-sm font-medium text-gray-700">Job Role</label>
+                        <input type="text" id="gadget-tool-job_role" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="gadget-tool-area" class="block text-sm font-medium text-gray-700">Area</label>
+                        <input type="text" id="gadget-tool-area" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="gadget-tool-device_type" class="block text-sm font-medium text-gray-700">Device Type</label>
+                        <input type="text" id="gadget-tool-device_type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="gadget-tool-device_brand_type" class="block text-sm font-medium text-gray-700">Device Brand | Type</label>
+                        <input type="text" id="gadget-tool-device_brand_type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="gadget-tool-ram_rom" class="block text-sm font-medium text-gray-700">RAM / ROM</label>
+                        <input type="text" id="gadget-tool-ram_rom" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="mb-4">
+                        <label for="gadget-tool-sn_imei" class="block text-sm font-medium text-gray-700">S/N / IMEI</label>
+                        <input type="text" id="gadget-tool-sn_imei" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="mb-4">
+                        <label for="gadget-tool-kondisi" class="block text-sm font-medium text-gray-700">Kondisi</label>
+                        <select id="gadget-tool-kondisi" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500" required>
+                            <option value="Baik">Baik</option>
+                            <option value="Rusak">Rusak</option>
+                            <option value="Perlu Perbaikan">Perlu Perbaikan</option>
+                        </select>
+                    </div>
+                    <div class="mb-6">
+                        <label for="gadget-tool-remark" class="block text-sm font-medium text-gray-700">Remark</label>
+                        <textarea id="gadget-tool-remark" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white text-gray-900 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal('gadget-tool-modal')" class="px-5 py-2 bg-gray-300 text-gray-800 rounded-lg shadow-md hover:bg-gray-400 transition-colors duration-200">Batal</button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- CSV Upload Modal -->
+        <div id="csv-upload-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden modal-overlay">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-95 opacity-0" id="csv-upload-modal-content">
+                <h2 id="csv-upload-modal-title" class="text-2xl font-bold text-gray-800 mb-6">Upload CSV</h2>
+                <form id="csv-upload-form" enctype="multipart/form-data">
+                    <input type="hidden" id="csv-upload-table-name">
+                    <div class="mb-4">
+                        <label for="csv-file-input" class="block text-sm font-medium text-gray-700">Pilih File CSV</label>
+                        <input type="file" id="csv-file-input" accept=".csv" class="mt-1 block w-full text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" required>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-6">
+                        Pastikan file CSV Anda memiliki header yang sesuai dengan kolom tabel.
+                        Untuk Tools Kerja Tim: `team_id,user,part_name,serial_number,brand,standard,size,type,purchase_date,manufacturing_date,kondisi,remark`
+                        Untuk Tools Gadget: `pic,job_role,area,device_type,device_brand_type,ram_rom,sn_imei,kondisi,remark`
+                    </p>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal('csv-upload-modal')" class="px-5 py-2 bg-gray-300 text-gray-800 rounded-lg shadow-md hover:bg-gray-400 transition-colors duration-200">Batal</button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-200">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div id="confirmation-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden modal-overlay">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-300 scale-95 opacity-0" id="confirmation-modal-content">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Konfirmasi Hapus</h2>
+                <p class="text-gray-700 mb-6">Apakah Anda yakin ingin menghapus data ini?</p>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('confirmation-modal')" class="px-5 py-2 bg-gray-300 text-gray-800 rounded-lg shadow-md hover:bg-gray-400 transition-colors duration-200">Batal</button>
+                    <button type="button" id="confirm-delete-btn" class="px-5 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition-colors duration-200">Hapus</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Mengubah API_URL menjadi path relatif untuk mengatasi masalah 404
+        const API_URL = 'api.php'; // Sesuaikan jika api.php berada di path yang berbeda
+
+        // DOM Elements
+        const currentDateTime = document.getElementById('current-datetime');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const loadingSpinner = document.getElementById('loading-spinner');
+
+        // Page Sections
+        const dashboardSection = document.getElementById('dashboard-section');
+        const teamToolsSection = document.getElementById('team-tools-section');
+        const gadgetToolsSection = document.getElementById('gadget-tools-section');
+
+        // Navigation Buttons
+        const navDashboard = document.getElementById('nav-dashboard');
+        const navTeamTools = document.getElementById('nav-team-tools');
+        const navGadgetTools = document.getElementById('nav-gadget-tools');
+
+        // Team Tools Elements
+        const searchTeamTools = document.getElementById('search-team-tools');
+        const addTeamToolBtn = document.getElementById('add-team-tool-btn');
+        const uploadTeamToolsBtn = document.getElementById('upload-team-tools-btn');
+        const downloadTeamToolsBtn = document.getElementById('download-team-tools-btn');
+        const downloadTeamTemplateBtn = document.getElementById('download-team-template-btn');
+        const teamToolsTableBody = document.getElementById('team-tools-table-body');
+        const teamToolModal = document.getElementById('team-tool-modal');
+        const teamToolModalContent = document.getElementById('team-tool-modal-content');
+        const teamToolModalTitle = document.getElementById('team-tool-modal-title');
+        const teamToolForm = document.getElementById('team-tool-form');
+
+        // Gadget Tools Elements
+        const searchGadgetTools = document.getElementById('search-gadget-tools');
+        const addGadgetToolBtn = document.getElementById('add-gadget-tool-btn');
+        const uploadGadgetToolsBtn = document.getElementById('upload-gadget-tools-btn');
+        const downloadGadgetToolsBtn = document.getElementById('download-gadget-tools-btn');
+        const downloadGadgetTemplateBtn = document.getElementById('download-gadget-template-btn');
+        const gadgetToolsTableBody = document.getElementById('gadget-tools-table-body');
+        const gadgetToolModal = document.getElementById('gadget-tool-modal');
+        const gadgetToolModalContent = document.getElementById('gadget-tool-modal-content');
+        const gadgetToolModalTitle = document.getElementById('gadget-tool-modal-title');
+        const gadgetToolForm = document.getElementById('gadget-tool-form');
+
+        // CSV Upload Elements
+        const csvUploadModal = document.getElementById('csv-upload-modal');
+        const csvUploadModalContent = document.getElementById('csv-upload-modal-content');
+        const csvUploadModalTitle = document.getElementById('csv-upload-modal-title');
+        const csvUploadForm = document.getElementById('csv-upload-form');
+        const csvFileInput = document.getElementById('csv-file-input');
+        const csvUploadTableName = document.getElementById('csv-upload-table-name');
+
+        // Confirmation Modal Elements
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const confirmationModalContent = document.getElementById('confirmation-modal-content');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        let currentDeleteParams = null; // To store context for deletion
+
+        // Chart instances
+        let teamToolsChartInstance = null;
+        let gadgetToolsChartInstance = null;
+
+        // --- Utility Functions ---
+        function showMessage(message, type = 'success') {
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden', 'bg-green-500', 'bg-red-500', 'bg-blue-500');
+            messageBox.classList.add('translate-x-0');
+
+            if (type === 'success') {
+                messageBox.classList.add('bg-green-500');
+                lucide.createIcons({ icons: { 'check-circle': lucide.icons['check-circle'] }, container: messageBox });
+            } else if (type === 'error') {
+                messageBox.classList.add('bg-red-500');
+                lucide.createIcons({ icons: { 'x-circle': lucide.icons['x-circle'] }, container: messageBox });
+            } else if (type === 'info') {
+                messageBox.classList.add('bg-blue-500');
+                lucide.createIcons({ icons: { 'info': lucide.icons['info'] }, container: messageBox });
+            }
+
+            setTimeout(() => {
+                hideMessage();
+            }, 5000);
+        }
+
+        function hideMessage() {
+            messageBox.classList.remove('translate-x-0');
+            messageBox.classList.add('translate-x-full');
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 300); // Allow transition to finish
+        }
+
+        function showLoading() {
+            loadingSpinner.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            loadingSpinner.classList.add('hidden');
+        }
+
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            const modalContent = document.getElementById(modalId + '-content');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 50);
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            const modalContent = document.getElementById(modalId + '-content');
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300); // Allow transition to finish
+        }
+
+        // --- Date and Time ---
+        function updateDateTime() {
+            const now = new Date();
+            const options = {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                timeZoneName: 'short', timeZone: 'Asia/Jakarta' // Example timezone, adjust as needed
+            };
+            currentDateTime.textContent = now.toLocaleDateString('id-ID', options);
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime(); // Initial call
+
+        // --- Navigation Logic ---
+        function showPage(pageId) {
+            const sections = document.querySelectorAll('.page-section');
+            sections.forEach(section => section.classList.add('hidden'));
+            document.getElementById(pageId).classList.remove('hidden');
+
+            // Update active navigation link styling
+            document.querySelectorAll('nav a').forEach(link => {
+                link.classList.remove('bg-indigo-100', 'text-indigo-700');
+                link.classList.add('text-gray-700', 'hover:bg-indigo-100', 'hover:text-indigo-700');
+            });
+
+            if (pageId === 'dashboard-section') {
+                navDashboard.classList.add('bg-indigo-100', 'text-indigo-700');
+                navDashboard.classList.remove('text-gray-700', 'hover:bg-indigo-100', 'hover:text-indigo-700');
+                fetchDashboardSummary();
+            } else if (pageId === 'team-tools-section') {
+                navTeamTools.classList.add('bg-indigo-100', 'text-indigo-700');
+                navTeamTools.classList.remove('text-gray-700', 'hover:bg-indigo-100', 'hover:text-indigo-700');
+                fetchTeamTools();
+            } else if (pageId === 'gadget-tools-section') {
+                navGadgetTools.classList.add('bg-indigo-100', 'text-indigo-700');
+                navGadgetTools.classList.remove('text-gray-700', 'hover:bg-indigo-100', 'hover:text-indigo-700');
+                fetchGadgetTools();
+            }
+            lucide.createIcons(); // Re-render icons for the active page
+        }
+
+        navDashboard.addEventListener('click', (e) => { e.preventDefault(); showPage('dashboard-section'); });
+        navTeamTools.addEventListener('click', (e) => { e.preventDefault(); showPage('team-tools-section'); });
+        navGadgetTools.addEventListener('click', (e) => { e.preventDefault(); showPage('gadget-tools-section'); });
+
+        // Default page on load
+        showPage('dashboard-section');
+
+        // --- API Calls ---
+        async function fetchData(action, table = '', queryParams = {}) {
+            showLoading();
+            let url = `${API_URL}?action=${action}`;
+            if (table) url += `&table=${table}`;
+            for (const key in queryParams) {
+                url += `&${key}=${encodeURIComponent(queryParams[key])}`;
+            }
+            console.log('Fetching data from URL:', url); // Log the URL
+            try {
+                const response = await fetch(url);
+                if (!response.ok) { // Check if response status is 2xx
+                    const errorText = await response.text();
+                    console.error(`HTTP error! Status: ${response.status}, Response: ${errorText}`);
+                    hideLoading();
+                    showMessage(`Terjadi kesalahan server: ${response.status} ${response.statusText}.`, 'error');
+                    return { success: false, message: `Server error: ${response.status}` };
+                }
+                const text = await response.text(); // Get raw text first
+                try {
+                    const data = JSON.parse(text); // Then try to parse as JSON
+                    hideLoading();
+                    if (!data.success) {
+                        showMessage(data.message || 'Terjadi kesalahan.', 'error');
+                    }
+                    return data;
+                } catch (jsonError) {
+                    // Log the raw text if JSON parsing fails
+                    console.error('Error parsing JSON. Raw response:', text);
+                    hideLoading();
+                    showMessage('Terjadi kesalahan saat memproses data dari server. Lihat konsol untuk detail.', 'error');
+                    return { success: false, message: 'Respons server tidak valid.' };
+                }
+            } catch (error) {
+                hideLoading();
+                showMessage('Koneksi ke server gagal.', 'error');
+                console.error('Error fetching data:', error);
+                return { success: false, message: 'Koneksi ke server gagal.' };
+            }
+        }
+
+        async function sendData(action, table, method, payload) {
+            showLoading();
+            let url = `${API_URL}?action=${action}&table=${table}`;
+            console.log('Sending data to URL:', url, 'with payload:', payload); // Log the URL and payload
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) { // Check if response status is 2xx
+                    const errorText = await response.text();
+                    console.error(`HTTP error! Status: ${response.status}, Response: ${errorText}`);
+                    hideLoading();
+                    showMessage(`Terjadi kesalahan server: ${response.status} ${response.statusText}.`, 'error');
+                    return { success: false, message: `Server error: ${response.status}` };
+                }
+                const text = await response.text(); // Get raw text first
+                try {
+                    const data = JSON.parse(text); // Then try to parse as JSON
+                    hideLoading();
+                    if (data.success) {
+                        showMessage(data.message);
+                    } else {
+                        showMessage(data.message || 'Operasi gagal.', 'error');
+                    }
+                    return data;
+                } catch (jsonError) {
+                    // Log the raw text if JSON parsing fails
+                    console.error('Error parsing JSON. Raw response:', text);
+                    hideLoading();
+                    showMessage('Terjadi kesalahan saat memproses respons server. Lihat konsol untuk detail.', 'error');
+                    return { success: false, message: 'Respons server tidak valid.' };
+                }
+            } catch (error) {
+                hideLoading();
+                showMessage('Koneksi ke server gagal.', 'error');
+                console.error('Error sending data:', error);
+                return { success: false, message: 'Koneksi ke server gagal.' };
+            }
+        }
+
+        // --- Dashboard Functions ---
+        async function fetchDashboardSummary() {
+            const data = await fetchData('get_dashboard_summary');
+            if (data.success) {
+                const summary = data.data;
+                document.getElementById('total-team-tools').textContent = summary.total_team_tools;
+                document.getElementById('total-gadget-tools').textContent = summary.total_gadget_tools;
+
+                document.getElementById('team-good-condition').textContent = summary.team_kondisi_summary['Baik'] || 0;
+                document.getElementById('gadget-good-condition').textContent = summary.gadget_kondisi_summary['Baik'] || 0;
+
+                renderCharts(summary.team_kondisi_summary, summary.gadget_kondisi_summary);
+            }
+        }
+
+        function renderCharts(teamData, gadgetData) {
+            const kondisiLabels = ['Baik', 'Rusak', 'Perlu Perbaikan'];
+            const chartColors = ['#4CAF50', '#FFC107', '#F44336']; // Green, Yellow, Red
+
+            // Register the datalabels plugin globally (if not already registered)
+            Chart.register(ChartDataLabels);
+
+            // Fixed colors for light mode
+            const textColor = '#333';
+            const gridColor = 'rgba(0, 0, 0, 0.1)';
+            const pieBorderColor = '#fff';
+
+            // Team Tools Chart (Bar Chart, horizontal, not responsive)
+            const teamCounts = kondisiLabels.map(label => teamData[label] || 0);
+            if (teamToolsChartInstance) teamToolsChartInstance.destroy();
+            const teamCtx = document.getElementById('teamToolsChart').getContext('2d');
+            teamToolsChartInstance = new Chart(teamCtx, {
+                type: 'bar',
+                data: {
+                    labels: kondisiLabels,
+                    datasets: [{
+                        label: 'Jumlah',
+                        data: teamCounts,
+                        backgroundColor: chartColors,
+                        borderColor: chartColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: false, // Set to false as requested
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // Makes the bar chart horizontal
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: textColor
+                            }
+                        },
+                        title: {
+                            display: false,
+                            text: 'Kondisi Tools Kerja Tim'
+                        },
+                        datalabels: { // Datalabels configuration for bar chart
+                            anchor: 'end',
+                            align: 'end',
+                            color: textColor,
+                            font: {
+                                weight: 'bold'
+                            },
+                            formatter: (value, context) => {
+                                return context.chart.data.labels[context.dataIndex] + ': ' + value;
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: textColor
+                            },
+                            grid: {
+                                color: gridColor
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: textColor
+                            },
+                            grid: {
+                                color: gridColor
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gadget Tools Chart (Pie Chart, not responsive)
+            const gadgetCounts = kondisiLabels.map(label => gadgetData[label] || 0);
+            if (gadgetToolsChartInstance) gadgetToolsChartInstance.destroy();
+            const gadgetCtx = document.getElementById('gadgetToolsChart').getContext('2d');
+            gadgetToolsChartInstance = new Chart(gadgetCtx, {
+                type: 'pie', // Changed to pie chart
+                data: {
+                    labels: kondisiLabels,
+                    datasets: [{
+                        data: gadgetCounts,
+                        backgroundColor: chartColors,
+                        borderColor: pieBorderColor, // Border for slices, fixed to light mode
+                        borderWidth: 2 // Border width for slices
+                    }]
+                },
+                options: {
+                    responsive: false, // Set to false as requested
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: textColor
+                            }
+                        },
+                        title: {
+                            display: false,
+                            text: 'Kondisi Tools Gadget'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed;
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        datalabels: { // Datalabels configuration for pie chart
+                            color: '#fff', // White color for better contrast on colored slices
+                            formatter: (value, context) => {
+                                const total = context.chart.data.datasets[0].data.reduce((sum, current) => sum + current, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                                return value + ' (' + percentage + ')';
+                            },
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Team Tools Functions ---
+        async function fetchTeamTools(search = '') {
+            const data = await fetchData('get_data', 'team_tools', { search: search });
+            if (data.success) {
+                renderTeamToolsTable(data.data);
+            }
+        }
+
+        function renderTeamToolsTable(tools) {
+            teamToolsTableBody.innerHTML = '';
+            if (tools.length === 0) {
+                // Adjusted colspan to account for new columns
+                teamToolsTableBody.innerHTML = `<tr><td colspan="13" class="px-6 py-4 text-center text-gray-500">Tidak ada data Tools Kerja Tim.</td></tr>`;
+                return;
+            }
+            tools.forEach(tool => {
+                const row = document.createElement('tr');
+                row.classList.add('hover:bg-gray-50');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${tool.team_id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${tool.user || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${tool.part_name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${tool.serial_number || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.brand || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.standard || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.size || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.type || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.purchase_year || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.manufacturing_year || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getKondisiBadgeClass(tool.kondisi)}">
+                            ${tool.kondisi}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.Update || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.remark || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="editTeamTool(${tool.id})" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <i data-lucide="edit" class="w-5 h-5 inline-block"></i>
+                        </button>
+                        <button onclick="confirmDelete('team_tools', ${tool.id})" class="text-red-600 hover:text-red-900">
+                            <i data-lucide="trash-2" class="w-5 h-5 inline-block"></i>
+                        </button>
+                    </td>
+                `;
+                teamToolsTableBody.appendChild(row);
+            });
+            lucide.createIcons(); // Re-render icons for new rows
+        }
+
+        function getKondisiBadgeClass(kondisi) {
+            switch (kondisi) {
+                case 'Baik': return 'bg-green-100 text-green-800';
+                case 'Rusak': return 'bg-red-100 text-red-800';
+                case 'Perlu Perbaikan': return 'bg-yellow-100 text-yellow-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        searchTeamTools.addEventListener('input', debounce(() => {
+            fetchTeamTools(searchTeamTools.value);
+        }, 300));
+
+        addTeamToolBtn.addEventListener('click', () => {
+            teamToolModalTitle.textContent = 'Tambah Tools Kerja Tim';
+            teamToolForm.reset();
+            document.getElementById('team-tool-id').value = '';
+            showModal('team-tool-modal');
+        });
+
+        async function editTeamTool(id) {
+            const data = await fetchData('get_data', 'team_tools'); // Fetch all data to find the specific item
+            if (data.success) {
+                const tool = data.data.find(t => t.id === id);
+                if (tool) {
+                    teamToolModalTitle.textContent = 'Edit Tools Kerja Tim';
+                    document.getElementById('team-tool-id').value = tool.id;
+                    document.getElementById('team-tool-team_id').value = tool.team_id;
+                    document.getElementById('team-tool-user').value = tool.user;
+                    document.getElementById('team-tool-part_name').value = tool.part_name;
+                    document.getElementById('team-tool-serial_number').value = tool.serial_number;
+                    document.getElementById('team-tool-brand').value = tool.brand;
+                    document.getElementById('team-tool-standard').value = tool.standard;
+                    document.getElementById('team-tool-size').value = tool.size;
+                    document.getElementById('team-tool-type').value = tool.type;
+                    document.getElementById('team-tool-purchase_date').value = tool.purchase_year; // Use purchase_year
+                    document.getElementById('team-tool-manufacturing_date').value = tool.manufacturing_year; // Use manufacturing_year
+                    document.getElementById('team-tool-kondisi').value = tool.kondisi;
+                    document.getElementById('team-tool-remark').value = tool.remark;
+                    showModal('team-tool-modal');
+                } else {
+                    showMessage('Data tidak ditemukan.', 'error');
+                }
+            }
+        }
+
+        teamToolForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('team-tool-id').value;
+            const purchaseYear = document.getElementById('team-tool-purchase_date').value;
+            const manufacturingYear = document.getElementById('team-tool-manufacturing_date').value;
+
+            // Construct full date strings for database if needed (e.g., 'YYYY-01-01')
+            const purchaseDate = purchaseYear ? `${purchaseYear}-01-01` : null;
+            const manufacturingDate = manufacturingYear ? `${manufacturingYear}-01-01` : null;
+
+            const payload = {
+                team_id: document.getElementById('team-tool-team_id').value,
+                user: document.getElementById('team-tool-user').value,
+                part_name: document.getElementById('team-tool-part_name').value,
+                serial_number: document.getElementById('team-tool-serial_number').value,
+                brand: document.getElementById('team-tool-brand').value,
+                standard: document.getElementById('team-tool-standard').value,
+                size: document.getElementById('team-tool-size').value,
+                type: document.getElementById('team-tool-type').value,
+                purchase_date: purchaseDate, // Send as full date string
+                manufacturing_date: manufacturingDate, // Send as full date string
+                kondisi: document.getElementById('team-tool-kondisi').value,
+                remark: document.getElementById('team-tool-remark').value
+            };
+
+            let response;
+            if (id) { // Edit existing
+                payload.id = id;
+                response = await sendData('update_data', 'team_tools', 'PUT', payload);
+            } else { // Add new
+                response = await sendData('add_data', 'team_tools', 'POST', payload);
+            }
+
+            if (response.success) {
+                closeModal('team-tool-modal');
+                fetchTeamTools(searchTeamTools.value);
+            }
+        });
+
+        uploadTeamToolsBtn.addEventListener('click', () => {
+            csvUploadModalTitle.textContent = 'Upload CSV Tools Kerja Tim';
+            csvUploadTableName.value = 'team_tools';
+            csvFileInput.value = ''; // Clear previous file
+            showModal('csv-upload-modal');
+        });
+
+        downloadTeamToolsBtn.addEventListener('click', () => {
+            window.location.href = `${API_URL}?action=download_csv&table=team_tools`;
+        });
+
+        // --- Gadget Tools Functions ---
+        async function fetchGadgetTools(search = '') {
+            const data = await fetchData('get_data', 'gadget_tools', { search: search });
+            if (data.success) {
+                renderGadgetToolsTable(data.data);
+            }
+        }
+
+        function renderGadgetToolsTable(tools) {
+            gadgetToolsTableBody.innerHTML = '';
+            if (tools.length === 0) {
+                gadgetToolsTableBody.innerHTML = `<tr><td colspan="12" class="px-6 py-4 text-center text-gray-500">Tidak ada data Tools Gadget.</td></tr>`;
+                return;
+            }
+            tools.forEach(tool => {
+                const row = document.createElement('tr');
+                row.classList.add('hover:bg-gray-50');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${tool.id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${tool.pic}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.job_role}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.area}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${tool.device_type}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.device_brand_type}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.ram_rom || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.sn_imei || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getKondisiBadgeClass(tool.kondisi)}">
+                            ${tool.kondisi}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.Update || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hide-on-mobile">${tool.remark || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="editGadgetTool(${tool.id})" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <i data-lucide="edit" class="w-5 h-5 inline-block"></i>
+                        </button>
+                        <button onclick="confirmDelete('gadget_tools', ${tool.id})" class="text-red-600 hover:text-red-900">
+                            <i data-lucide="trash-2" class="w-5 h-5 inline-block"></i>
+                        </button>
+                    </td>
+                `;
+                gadgetToolsTableBody.appendChild(row);
+            });
+            lucide.createIcons(); // Re-render icons for new rows
+        }
+
+        function getKondisiBadgeClass(kondisi) {
+            switch (kondisi) {
+                case 'Baik': return 'bg-green-100 text-green-800';
+                case 'Rusak': return 'bg-red-100 text-red-800';
+                case 'Perlu Perbaikan': return 'bg-yellow-100 text-yellow-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        searchGadgetTools.addEventListener('input', debounce(() => {
+            fetchGadgetTools(searchGadgetTools.value);
+        }, 300));
+
+        addGadgetToolBtn.addEventListener('click', () => {
+            gadgetToolModalTitle.textContent = 'Tambah Tools Gadget';
+            gadgetToolForm.reset();
+            document.getElementById('gadget-tool-id').value = '';
+            showModal('gadget-tool-modal');
+        });
+
+        async function editGadgetTool(id) {
+            const data = await fetchData('get_data', 'gadget_tools'); // Fetch all data to find the specific item
+            if (data.success) {
+                const tool = data.data.find(t => t.id === id);
+                if (tool) {
+                    gadgetToolModalTitle.textContent = 'Edit Tools Gadget';
+                    document.getElementById('gadget-tool-id').value = tool.id;
+                    document.getElementById('gadget-tool-pic').value = tool.pic;
+                    document.getElementById('gadget-tool-job_role').value = tool.job_role;
+                    document.getElementById('gadget-tool-area').value = tool.area;
+                    document.getElementById('gadget-tool-device_type').value = tool.device_type;
+                    document.getElementById('gadget-tool-device_brand_type').value = tool.device_brand_type;
+                    document.getElementById('gadget-tool-ram_rom').value = tool.ram_rom;
+                    document.getElementById('gadget-tool-sn_imei').value = tool.sn_imei;
+                    document.getElementById('gadget-tool-kondisi').value = tool.kondisi;
+                    document.getElementById('gadget-tool-remark').value = tool.remark;
+                    showModal('gadget-tool-modal');
+                } else {
+                    showMessage('Data tidak ditemukan.', 'error');
+                }
+            }
+        }
+
+        gadgetToolForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('gadget-tool-id').value;
+            const payload = {
+                pic: document.getElementById('gadget-tool-pic').value,
+                job_role: document.getElementById('gadget-tool-job_role').value,
+                area: document.getElementById('gadget-tool-area').value,
+                device_type: document.getElementById('gadget-tool-device_type').value,
+                device_brand_type: document.getElementById('gadget-tool-device_brand_type').value,
+                ram_rom: document.getElementById('gadget-tool-ram_rom').value,
+                sn_imei: document.getElementById('gadget-tool-sn_imei').value,
+                kondisi: document.getElementById('gadget-tool-kondisi').value,
+                remark: document.getElementById('gadget-tool-remark').value
+            };
+
+            let response;
+            if (id) { // Edit existing
+                payload.id = id;
+                response = await sendData('update_data', 'gadget_tools', 'PUT', payload);
+            } else { // Add new
+                response = await sendData('add_data', 'gadget_tools', 'POST', payload);
+            }
+
+            if (response.success) {
+                closeModal('gadget-tool-modal');
+                fetchGadgetTools(searchGadgetTools.value);
+            }
+        });
+
+        uploadGadgetToolsBtn.addEventListener('click', () => {
+            csvUploadModalTitle.textContent = 'Upload CSV Tools Gadget';
+            csvUploadTableName.value = 'gadget_tools';
+            csvFileInput.value = ''; // Clear previous file
+            showModal('csv-upload-modal');
+        });
+
+        downloadGadgetToolsBtn.addEventListener('click', () => {
+            window.location.href = `${API_URL}?action=download_csv&table=gadget_tools`;
+        });
+
+        // --- CSV Upload Logic ---
+        csvUploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const table = csvUploadTableName.value;
+            const file = csvFileInput.files[0];
+
+            if (!file) {
+                showMessage('Pilih file CSV terlebih dahulu.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('csv_file', file);
+
+            showLoading();
+            try {
+                const response = await fetch(`${API_URL}?action=upload_csv&table=${table}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                hideLoading();
+                if (data.success) {
+                    showMessage(data.message);
+                    closeModal('csv-upload-modal');
+                    if (table === 'team_tools') {
+                        fetchTeamTools(searchTeamTools.value);
+                    } else if (table === 'gadget_tools') {
+                        fetchGadgetTools(searchGadgetTools.value);
+                    }
+                } else {
+                    showMessage(data.message || 'Gagal mengunggah CSV.', 'error');
+                    if (data.errors && data.errors.length > 0) {
+                        console.error("CSV Upload Errors:", data.errors);
+                    }
+                }
+            } catch (error) {
+                hideLoading();
+                showMessage('Koneksi ke server gagal saat mengunggah CSV.', 'error');
+                console.error('Error uploading CSV:', error);
+            }
+        });
+
+        // --- Delete Confirmation ---
+        function confirmDelete(table, id) {
+            currentDeleteParams = { table, id };
+            showModal('confirmation-modal');
+        }
+
+        confirmDeleteBtn.addEventListener('click', async () => {
+            if (currentDeleteParams) {
+                const { table, id } = currentDeleteParams;
+                const response = await sendData('delete_data', table, 'DELETE', { id: id });
+                if (response.success) {
+                    closeModal('confirmation-modal');
+                    if (table === 'team_tools') {
+                        fetchTeamTools(searchTeamTools.value);
+                    } else if (table === 'gadget_tools') {
+                        fetchGadgetTools(searchGadgetTools.value);
+                    }
+                }
+            }
+        });
+
+        // --- Debounce function for search input ---
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
+
+        // --- New Feature: Download CSV Template ---
+        function downloadCSVTemplate(tableName) {
+            let headers;
+            let fileName;
+
+            if (tableName === 'team_tools') {
+                // Header yang diperbarui untuk template CSV: menyertakan purchase_date dan manufacturing_date
+                headers = ['team_id', 'user', 'part_name', 'serial_number', 'brand', 'standard', 'size', 'type', 'purchase_date', 'manufacturing_date', 'kondisi', 'remark'];
+                fileName = 'team_tools_template.csv';
+            } else if (tableName === 'gadget_tools') {
+                headers = ['pic', 'job_role', 'area', 'device_type', 'device_brand_type', 'ram_rom', 'sn_imei', 'kondisi', 'remark'];
+                fileName = 'gadget_tools_template.csv';
+            } else {
+                showMessage('Nama tabel tidak valid untuk template CSV.', 'error');
+                return;
+            }
+
+            const csvContent = headers.join(',') + '\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) { // Deteksi fitur untuk atribut download
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', fileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showMessage(`Template CSV "${fileName}" berhasil diunduh.`, 'success');
+            } else {
+                showMessage('Browser Anda tidak mendukung pengunduhan file secara langsung. Silakan coba browser lain.', 'info');
+            }
+        }
+
+        downloadTeamTemplateBtn.addEventListener('click', () => {
+            downloadCSVTemplate('team_tools');
+        });
+
+        downloadGadgetTemplateBtn.addEventListener('click', () => {
+            downloadCSVTemplate('gadget_tools');
+        });
+
+    </script>
+</body>
+</html>
